@@ -119,3 +119,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // creates a 2 element double vector.
   return {};
 }
+
+vector<double> MPC::Solve2(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+  return {0.0, 1.0};
+}
