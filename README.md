@@ -67,9 +67,11 @@ This approach is implemented in `MPC::ApplyLatency()` private method.
 
 Besides, I add a term to the cost function that punishes high speed values
 at sharp steering angles. This addition had positive effect on the car's
-behaviour at curvy parts of the track. 
+behavior at curvy parts of the track. 
 
+## Running in simulator
 
+[![Alt text](https://img.youtube.com/vi/DIB1kMVHLRo/0.jpg)](https://www.youtube.com/watch?v=DIB1kMVHLRo)
 
 
 
