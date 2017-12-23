@@ -65,7 +65,7 @@ public:
 
     // Minimize the use of actuators.
     for (int i = 0; i < N - 1; i++) {
-      result += CppAD::pow(vars[delta_start + i], 2);
+      result += 100*CppAD::pow(vars[delta_start + i], 2);
       result += CppAD::pow(vars[a_start + i], 2);
     }
 
@@ -76,7 +76,7 @@ public:
 
     // Punish for high speed with sharp steering angles
     for (int i = 0; i < N-1; i++) {
-      result += 40*CppAD::pow(vars[delta_start+i] * vars[v_start+i], 2);
+      result += 20*CppAD::pow(vars[delta_start+i] * vars[v_start+i], 2);
     }
     
     return result;
