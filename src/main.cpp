@@ -19,6 +19,8 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+double mlph2mtps(double x) { return x * 1609 / 3600; }
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -37,7 +39,7 @@ string hasData(string s) {
 int main() {
   uWS::Hub h;
 
-  MPC mpc(0.1);
+  MPC mpc(0.1, mlph2mtps(70));
   ReferenceTrajectory trajectory;
 
   h.onMessage([&mpc, &trajectory](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -58,7 +60,7 @@ int main() {
           double px = j[1]["x"];
           double py = j[1]["y"];
           double psi = j[1]["psi"];
-          double v = j[1]["speed"];
+          double v = mlph2mtps(j[1]["speed"]);
 	  double delta = j[1]["steering_angle"];
 	  double throttle = j[1]["throttle"];
 
@@ -67,8 +69,6 @@ int main() {
 	  
 	  double cte = trajectory.Eval(0);
 	  double epsi = atan(trajectory.EvalPrime(0));
-
-	  cout << "cte=" << cte <<", epsi=" << epsi << endl;
 
 	  Eigen::VectorXd state(6);
 	  Eigen::VectorXd actuators(2);

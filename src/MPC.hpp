@@ -28,9 +28,10 @@ public:
 
 class MPC {
   double _latency;
+  double _ref_speed;
   VectorXd ApplyLatency(const VectorXd& state, const VectorXd& actuators);
 public:
-  MPC(double latency): _latency(latency) {}
+  MPC(double latency, double ref_speed): _latency(latency), _ref_speed(ref_speed) {}
   Solution Solve(const VectorXd& state, const VectorXd& actuators, const VectorXd& coeffs);
 };
 

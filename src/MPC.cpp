@@ -20,7 +20,6 @@ double dt = 0.1;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-double ref_v = 70;
 size_t x_start = 0;
 size_t y_start = x_start + N;
 size_t psi_start = y_start + N;
@@ -49,8 +48,9 @@ std::string ipopt_options() {
 
 class FG_eval {
   const Eigen::VectorXd& coeffs;
+  double ref_speed;
 public:
-  FG_eval(const Eigen::VectorXd& coeffs): coeffs(coeffs) {}
+  FG_eval(const Eigen::VectorXd& coeffs, double ref_speed): coeffs(coeffs), ref_speed(ref_speed) {}
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
 
@@ -60,7 +60,7 @@ public:
     for (int i = 0; i < N; i++) {
       result += (100*CppAD::pow(vars[cte_start + i], 2) +
 		 100*CppAD::pow(vars[epsi_start + i], 2) +
-		 0.1 * CppAD::pow(vars[v_start + i] - ref_v, 2));
+		 0.1 * CppAD::pow(vars[v_start + i] - ref_speed, 2));
     }
 
     // Minimize the use of actuators.
@@ -70,7 +70,7 @@ public:
     }
 
     for (int i = 0; i < N - 2; i++) {
-      result += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      result += 100*CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       result += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
 
@@ -159,7 +159,7 @@ VectorXd MPC::ApplyLatency(const VectorXd& state, const VectorXd& actuators) {
   new_state[2] = psi - v/Lf * delta * _latency;
   new_state[3] = v + a * _latency;
   new_state[4] = cte + v * sin(epsi) * _latency;
-  new_state[5] = epsi;
+  new_state[5] = epsi - v/Lf * delta * _latency;
 
   return new_state;
 }
@@ -235,7 +235,7 @@ Solution MPC::Solve(const VectorXd& state, const VectorXd& actuators, const Vect
   constraints_lowerbound[epsi_start] = constraints_upperbound[epsi_start] = epsi;
 
   // object that computes objective and constraints
-  FG_eval fg_eval(coeffs);
+  FG_eval fg_eval(coeffs, _ref_speed);
 
   CppAD::ipopt::solve_result<Dvector> solution;
   CppAD::ipopt::solve<Dvector, FG_eval>(ipopt_options(), vars,
