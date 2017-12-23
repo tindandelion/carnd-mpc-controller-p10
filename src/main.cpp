@@ -6,9 +6,8 @@
 #include <vector>
 
 #include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
 
-#include "MPC.h"
+#include "MPC.hpp"
 #include "ReferenceTrajectory.hpp"
 #include "json.hpp"
 
@@ -48,7 +47,6 @@ int main() {
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
-    cout << sdata << endl;
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
       string s = hasData(sdata);
       if (s != "") {
@@ -65,35 +63,23 @@ int main() {
 
 	  trajectory.SetOrigin(px, py, psi);
 	  trajectory.Fit(ptsx, ptsy);
-          /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
-          */
-
-	  Eigen::VectorXd state;
-	  Eigen::VectorXd coeffs;
-	  auto vars = mpc.Solve2(state, coeffs);
 	  
-          double steer_value = vars[0];
-          double throttle_value = vars[1];
+	  double cte = trajectory.Eval(0);
+	  double epsi = -atan(trajectory.EvalPrime(0));
 
+	  Eigen::VectorXd state(6);
+	  state << 0, 0, 0, v, cte, epsi;
+	  auto solution = mpc.Solve(state, trajectory.GetCoeffs());
+	  
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value / (deg2rad(25));
-          msgJson["throttle"] = throttle_value;
+          msgJson["steering_angle"] = solution.delta() / (deg2rad(25));
+          msgJson["throttle"] = solution.a();
 
           //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
-
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
+          msgJson["mpc_x"] = solution.xx();
+          msgJson["mpc_y"] = solution.yy();
 
           //Display the waypoints/reference line
           vector<double> next_x_vals;
@@ -101,14 +87,13 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
-	  trajectory.GeneratePath(300, next_x_vals, next_y_vals);
+	  trajectory.EvalPath(300, next_x_vals, next_y_vals);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
@@ -118,7 +103,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          this_thread::sleep_for(chrono::milliseconds(100));
+	  //          this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {

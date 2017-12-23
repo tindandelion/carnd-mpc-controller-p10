@@ -55,7 +55,17 @@ void ReferenceTrajectory::Fit(const vector<double>& xx, const vector<double>& yy
   _coeffs = polyfit(local_xx, local_yy, 3);
 }
 
-void ReferenceTrajectory::GeneratePath(int count, vector<double>& out_x, vector<double>& out_y) {
+double ReferenceTrajectory::Eval(double x) {
+  return polyeval(_coeffs, x);
+}
+
+double ReferenceTrajectory::EvalPrime(double x) {
+  VectorXd prime_coeffs(3);
+  prime_coeffs << _coeffs[1], 2*_coeffs[2], 3*_coeffs[3];
+  return polyeval(prime_coeffs, x);
+}
+
+void ReferenceTrajectory::EvalPath(int count, vector<double>& out_x, vector<double>& out_y) {
   int step = 3;
   for (double i = 0; i < 100; i += step){
     out_x.push_back(i);

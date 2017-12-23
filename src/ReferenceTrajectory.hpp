@@ -22,15 +22,17 @@ class ReferenceTrajectory {
 		      VectorXd& out_xx, VectorXd& out_yy);
   
 public:
-
   void SetOrigin(double x, double y, double angle) {
     _origin_x = x;
     _origin_y = y;
     _origin_angle = angle;
   }
-
   void Fit(const vector<double>& xx, const vector<double>& yy);
-  void GeneratePath(int count, vector<double>& out_x, vector<double>& out_y);
+  double Eval(double x);
+  double EvalPrime(double x);
+  void EvalPath(int count, vector<double>& out_x, vector<double>& out_y);
+
+  const VectorXd& GetCoeffs() const { return _coeffs; }
 };
 
 #endif
