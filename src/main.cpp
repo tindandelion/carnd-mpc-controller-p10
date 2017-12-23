@@ -37,8 +37,7 @@ string hasData(string s) {
 int main() {
   uWS::Hub h;
 
-  // MPC is initialized here!
-  MPC mpc;
+  MPC mpc(0.1);
   ReferenceTrajectory trajectory;
 
   h.onMessage([&mpc, &trajectory](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -60,16 +59,22 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+	  double delta = j[1]["steering_angle"];
+	  double throttle = j[1]["throttle"];
 
 	  trajectory.SetOrigin(px, py, psi);
 	  trajectory.Fit(ptsx, ptsy);
 	  
 	  double cte = trajectory.Eval(0);
-	  double epsi = -atan(trajectory.EvalPrime(0));
+	  double epsi = atan(trajectory.EvalPrime(0));
+
+	  cout << "cte=" << cte <<", epsi=" << epsi << endl;
 
 	  Eigen::VectorXd state(6);
+	  Eigen::VectorXd actuators(2);
 	  state << 0, 0, 0, v, cte, epsi;
-	  auto solution = mpc.Solve(state, trajectory.GetCoeffs());
+	  actuators << delta, throttle;
+	  auto solution = mpc.Solve(state, actuators, trajectory.GetCoeffs());
 	  
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -103,7 +108,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-	  //          this_thread::sleep_for(chrono::milliseconds(100));
+	  this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {

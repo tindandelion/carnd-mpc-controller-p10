@@ -5,6 +5,7 @@
 #include "Eigen-3.3/Eigen/Core"
 
 using namespace std;
+using Eigen::VectorXd;
 
 class Solution {
   double _delta;
@@ -26,8 +27,11 @@ public:
 };
 
 class MPC {
- public:
-  Solution Solve(const Eigen::VectorXd& state, const Eigen::VectorXd& coeffs);
+  double _latency;
+  VectorXd ApplyLatency(const VectorXd& state, const VectorXd& actuators);
+public:
+  MPC(double latency): _latency(latency) {}
+  Solution Solve(const VectorXd& state, const VectorXd& actuators, const VectorXd& coeffs);
 };
 
 #endif /* MPC_H */

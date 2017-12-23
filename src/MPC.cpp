@@ -5,7 +5,7 @@
 
 using CppAD::AD;
 
-size_t N = 10;
+size_t N = 15;
 double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
@@ -59,7 +59,7 @@ public:
 
     for (int i = 0; i < N; i++) {
       result += (100*CppAD::pow(vars[cte_start + i], 2) +
-		 CppAD::pow(vars[epsi_start + i], 2) +
+		 100*CppAD::pow(vars[epsi_start + i], 2) +
 		 0.1 * CppAD::pow(vars[v_start + i] - ref_v, 2));
     }
 
@@ -74,8 +74,9 @@ public:
       result += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
 
+    // Punish for high speed with sharp steering angles
     for (int i = 0; i < N-1; i++) {
-      result += 20*CppAD::pow(vars[delta_start+i] * vars[v_start+i], 2);
+      result += 40*CppAD::pow(vars[delta_start+i] * vars[v_start+i], 2);
     }
     
     return result;
@@ -140,19 +141,44 @@ public:
   }
 };
 
-Solution MPC::Solve(const Eigen::VectorXd& state, const Eigen::VectorXd& coeffs) {
-  bool ok = true;
-  typedef CPPAD_TESTVECTOR(double) Dvector;
-
-  size_t n_vars = N * 6 + (N - 1) * 2;
-  size_t n_constraints = N * 6;
-
+VectorXd MPC::ApplyLatency(const VectorXd& state, const VectorXd& actuators) {
   double x = state[0];
   double y = state[1];
   double psi = state[2];
   double v = state[3];
   double cte = state[4];
   double epsi = state[5];
+
+  double delta = actuators[0];
+  double a = actuators[1];
+
+  VectorXd new_state(6);
+
+  new_state[0] = x + v * cos(psi) * _latency;
+  new_state[1] = y + v * sin(psi) * _latency;
+  new_state[2] = psi - v/Lf * delta * _latency;
+  new_state[3] = v + a * _latency;
+  new_state[4] = cte + v * sin(epsi) * _latency;
+  new_state[5] = epsi;
+
+  return new_state;
+}
+
+Solution MPC::Solve(const VectorXd& state, const VectorXd& actuators, const VectorXd& coeffs) {
+  bool ok = true;
+  typedef CPPAD_TESTVECTOR(double) Dvector;
+
+  size_t n_vars = N * 6 + (N - 1) * 2;
+  size_t n_constraints = N * 6;
+
+  VectorXd init_state = ApplyLatency(state, actuators);
+
+  double x = init_state[0];
+  double y = init_state[1];
+  double psi = init_state[2];
+  double v = init_state[3];
+  double cte = init_state[4];
+  double epsi = init_state[5];
 
   Dvector vars(n_vars);
   for (int i = 0; i < n_vars; i++) {
